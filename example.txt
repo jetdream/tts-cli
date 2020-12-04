@@ -1,0 +1,3 @@
+You start by checking who of your teammates is currently connected with your prospect.
+Speaking in our system language, you are getting the list of 1st connections that the target has with any of your profiles.
+You save this list in a variable called “connectedProfiles”.

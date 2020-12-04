@@ -1,0 +1,8 @@
+<speak>
+  <emphasis level="strong"> Go from here, to there! </emphasis> <break strength="strong"/>
+  <emphasis level="none"> Go from here, to there! </emphasis> <break strength="strong"/>
+
+  You start by checking who of your teammates is currently connected with your prospect. <break strength="strong"/> Here you go!
+  Speaking in our system language, you are getting the list of 1st connections that the target has with any of your profiles.
+  You save this list in a variable called “connectedProfiles”.
+</speak>
