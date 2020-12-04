@@ -10,7 +10,7 @@ const client = new textToSpeech.TextToSpeechClient({
   credentials
 });
 
-async function quickStart(inputFile, outputFile) {
+async function processFile(inputFile, outputFile) {
   // The text to synthesize
     const text = fs.readFileSync(inputFile,'UTF8');
 
@@ -43,28 +43,86 @@ async function quickStart(inputFile, outputFile) {
   console.log('Audio content written to file: '+outputFile);
 }
 
-let args = process.argv.slice(2);
-if (!args.length || args.length > 2) {
-    console.log("Use: tts-cli <inputfile.txt|ssml> [<output.mp3>]");
-    console.log("If second parameter is omitted, output file will be with the same name, but with mp3 extension.");
-    return;
+async function start() {
+    let args = process.argv.slice(2);
+    if (!args.length || args.length > 2) {
+        console.log("File use: tts-cli <inputfile.txt|ssml> [<output.mp3>]");
+        console.log("If second parameter is omitted, output file will be with the same name, but with mp3 extension.");
+        console.log();
+        console.log("Directory use: tts-cli <directory>");
+        console.log("Directory must contain txt and/or ssml files.");
+        console.log("If according mp3 file does not exists or dates are different, audio will be (re)generated.");
+        return;
+    }
+
+    let inputFile = args[0];
+
+    let fsStat = util.promisify(fs.stat);
+
+    let inputFileStats = await fsStat(inputFile);
+
+    if (inputFileStats.isDirectory()) {
+        let inputDir = inputFile;
+
+        let stat = {};
+        let statFile = inputDir+"/tts-cli-processed.json";
+        if (fs.existsSync(statFile)) {
+            try {
+                stat = JSON.parse(fs.readFileSync(statFile, 'UTF8'));
+            } catch (e) {
+                console.error(e);
+            }
+        }
+
+        const files = await fs.promises.readdir(inputDir);
+        for (const file of files) {
+            if (!/\.(txt|ssml)$/i.test(file)) continue;
+            let iFile = inputDir+"/"+file;
+            let oFile = iFile+".mp3";
+
+
+            if (fs.existsSync(oFile)) {
+                let inputFileStat = await fs.promises.stat(iFile);
+
+                let mtime = +inputFileStat.mtime;
+                if (mtime === stat[file]) {
+                    console.log("Skipped: "+file);
+                    continue;
+                } else {
+                    stat[file] = mtime;
+                }
+            }
+
+            await processFile(iFile, oFile);
+
+        }
+
+        let statSerialized = JSON.stringify(stat, null,2);
+        fs.writeFileSync(statFile, statSerialized);
+
+        console.log("Done");
+
+
+    } else {
+
+        if (!/\.(txt|ssml)$/i.test(inputFile)) {
+            console.log("Use: tts-cli <inputfile.txt|ssml> [<output.mp3>]");
+            console.error("Input file must have txt or ssml extension.");
+            return;
+        }
+
+        let outputFile = args.length === 2 ? args[1] : inputFile.replace(/\.(txt|ssml)$/i, '.mp3');
+
+
+        console.log(inputFile, outputFile);
+
+        await processFile(inputFile, outputFile);
+    }
+
 }
 
-let inputFile = args[0];
 
-if (!/\.(txt|ssml)$/i.test(inputFile)) {
-    console.log("Use: tts-cli <inputfile.txt|ssml> [<output.mp3>]");
-    console.error("Input file must have txt or ssml extension.");
-    return;
-}
-
-let outputFile = args.length === 2 ? args[1] : inputFile.replace(/\.(txt|ssml)$/i,'.mp3');
-
-
-console.log(inputFile, outputFile);
-
-quickStart(inputFile, outputFile);
-
+start();
 
 
 
